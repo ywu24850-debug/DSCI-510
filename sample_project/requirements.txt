@@ -1,6 +1,9 @@
-numpy
 pandas
+numpy
+xgboost
 scikit-learn
-kaggle
-kagglehub
+requests
+beautifulsoup4
+matplotlib
+pytest
 python-dotenv

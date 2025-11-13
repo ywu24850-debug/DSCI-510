@@ -1,74 +1,78 @@
+import pandas as pd
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, classification_report
+import config
 import os
 import matplotlib.pyplot as plt
 
+def match_classifier(df_full):
+    print("\nTraining Match Result Classifier")
+    if df_full is None:
+        print("Data loading failed.")
+        return
+    features = config.FEATURES
+    target = config.TARGET
 
-# --- PLOT STATISTICS ---
-def plot_statistics(df, dataset_name, result_dir="plots", notebook_plot=False):
-    """
-    Generates and saves basic plots for a given DataFrame.
+    df_model = df_full.dropna(subset=features + [target])
+    print(f"\n{len(df_model)} / {len(df_full)} clean rows ")
+    if len(df_model) < 100:
+        print("Too few rows after dropna")
+        return
 
-    :param result_dir: where to place plots
-    :param df: The pandas DataFrame
-    :param dataset_name: A name for titling plots (e.g., 'Titanic')
-    """
-    print(f"--- Plotting statistics for {dataset_name} ---")
+    X = df_model[features]
+    y = df_model[target]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+    print(f"Training set size: {len(X_train)} matches")
+    print(f"Test set size: {len(X_test)} matches")
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
-    # Ensure a directory for plots exists
-    os.makedirs(result_dir, exist_ok=True)
+    print("\nTraining Classifier...")
+    model = XGBClassifier(
+        objective='multi:softmax',
+        num_class=3,
+        n_estimators=100,
+        learning_rate=0.1,
+        max_depth=3,
+        random_state=42,
+        early_stopping_rounds=10
+    )
+    model.fit(
+        X_train_scaled,
+        y_train,
+        eval_set=[(X_test_scaled, y_test)],
+        verbose=False
+    )
+    print("Model training complete")
 
-    # Identify numerical and categorical columns for plotting
-    numerical_cols = df.select_dtypes(include=['int64', 'float64']).columns
-    categorical_cols = df.select_dtypes(include=['object', 'category']).columns
+    predictions = model.predict(X_test_scaled)
+    accuracy = accuracy_score(y_test, predictions)
+    print(f"\nModel Evaluation Accuracy: {accuracy * 100:.2f}%")
+    print("\nClassification Report")
+    print(
+        classification_report(y_test, predictions, target_names=['Home (0)', 'Draw (1)', 'Away (2)'], zero_division=0))
+    print("\nFeature Importance")
 
-    # Plot 1: Histogram (for a numerical column)
-    if not numerical_cols.empty:
-        col_to_plot = numerical_cols[0]
-        plt.figure(figsize=(10, 6))
-        df[col_to_plot].hist(bins=30, edgecolor='black')
-        plt.title(f'Histogram of {col_to_plot} - {dataset_name}')
-        plt.xlabel(col_to_plot)
-        plt.ylabel('Frequency')
-        plt.grid(axis='y')
-        if not notebook_plot:
-            plt.savefig(f'{result_dir}/{dataset_name}_histogram.png')
-            print(f"Saved histogram for {col_to_plot}")
-            plt.close()
-        else:
-            plt.plot()
+    feature_names = model.get_booster().feature_names
+    if feature_names is None: feature_names = features
+    importance_scores = model.feature_importances_
+    importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': importance_scores})
+    importance_df = importance_df.sort_values(by='Importance', ascending=False)
+    print(importance_df.head(20).to_string())
 
-    # Plot 2: Bar Chart (for a categorical column)
-    if not categorical_cols.empty:
-        # Use the first categorical column with less than 30 unique values
-        for col_to_plot in categorical_cols:
-            if df[col_to_plot].nunique() < 30:
-                plt.figure(figsize=(10, 6))
-                df[col_to_plot].value_counts().plot(kind='bar')
-                plt.title(f'Bar Chart of {col_to_plot} - {dataset_name}')
-                plt.xlabel(col_to_plot)
-                plt.ylabel('Count')
-                plt.xticks(rotation=45)
-                plt.grid(axis='y')
-                if not notebook_plot:
-                    plt.savefig(f'{result_dir}/{dataset_name}_barchart.png')
-                    print(f"Saved bar chart for {col_to_plot}")
-                    plt.close()
-                else:
-                    plt.plot()
-                break  # Only plot the first suitable one
-
-    # Plot 3: Scatter Plot (for two numerical columns)
-    if len(numerical_cols) >= 2:
-        col1 = numerical_cols[0]
-        col2 = numerical_cols[1]
-        plt.figure(figsize=(10, 6))
-        plt.scatter(df[col1], df[col2], alpha=0.5)
-        plt.title(f'Scatter Plot: {col1} vs {col2} - {dataset_name}')
-        plt.xlabel(col1)
-        plt.ylabel(col2)
-        plt.grid(True)
-        if not notebook_plot:
-            plt.savefig(f'{result_dir}/{dataset_name}_scatterplot.png')
-            print(f"Saved scatter plot for {col1} vs {col2}")
-            plt.close()
-        else:
-            plt.plot()
+    try:
+        if not os.path.exists('results'):
+            os.makedirs('results')
+        fig, ax = plt.subplots()
+        importance_df.sort_values(by='Importance', ascending=True).plot(kind='barh', x='Feature', y='Importance', ax=ax,
+                                                                        legend=False)
+        ax.set_title('Feature Importance')
+        plt.tight_layout()
+        save_path = os.path.join(config.RESULTS_DIR, 'feature_importance.png')
+        plt.savefig(save_path)
+        print(f"\nFeature importance plot saved to {save_path}")
+    except Exception as e:
+        print(f"Warning: Could not save plot. Error: {e}")
