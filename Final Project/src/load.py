@@ -20,6 +20,7 @@ def load_csv_data(league_csvs):
     for league_id, csv_paths in league_csvs.items():
         print(f"Loading league")
         for season_path in csv_paths:
+            url = config.BASE_URL + season_path
             local_filename = season_path.replace('/', '_')
             local_filepath = os.path.join(config.DATA_DIR, local_filename)
             if not os.path.exists(local_filepath):
