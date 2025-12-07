@@ -36,12 +36,11 @@ def run_final_xg_regressor(df_full):
     print(f"RMSE: {rmse:.4f} ")
     print(f"R2 Score: {r2:.4f}")
 
-    draw_threshold = 0.3
     preds = []
     for p in predictions:
-        if p > draw_threshold:
+        if p > config.draw_threshold:
             preds.append(0)
-        elif p < -draw_threshold:
+        elif p < -config.draw_threshold:
             preds.append(2)
         else:
             preds.append(1)

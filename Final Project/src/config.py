@@ -86,3 +86,5 @@ features = [
 target = 'target_xg_diff'
 
 headers = {'User-Agent': 'Mozilla/5.0'}
+
+draw_threshold = 0.3
