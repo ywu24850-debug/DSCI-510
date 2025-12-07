@@ -5,19 +5,23 @@ from dotenv import load_dotenv
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-DATA_DIR = os.path.join(PROJECT_ROOT, "data")
-RESULTS_DIR = os.path.join(PROJECT_ROOT, "results")
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+data_dir = os.path.join(project_root, "data")
+results_dir = os.path.join(project_root, "results")
 
-BASE_URL = "https://www.football-data.co.uk/mmz4281/"
-LEAGUE_CSVS = {
+url = "https://www.football-data.co.uk/mmz4281/"
+league_csv = {
     'E0': ['2324/E0.csv', '2223/E0.csv', '2122/E0.csv', '2021/E0.csv', '1920/E0.csv']
 }
-LEAGUES_TO_SCRAPE = {'EPL': 'E0'}
-START_YEAR = 2019
-END_YEAR = 2023
+leagues_to_scrape = {'EPL': 'E0'}
+start_year = 2019
+end_year = 2023
 
-TEAM_NAME_MAPPING = {
+base_url = "https://understat.com/league/"
+
+ELO_URL = "http://api.clubelo.com/"
+
+team_name_mapping = {
     "Manchester City": "Man City",
     "Manchester United": "Man United",
     "Tottenham": "Tottenham",
@@ -60,13 +64,14 @@ TEAM_NAME_MAPPING = {
     "Sheffield Utd": "Sheffield United"
 }
 
-STATS_COLS_BASE = [
+stats = [
     'points', 'goals_for', 'goals_against',
     'shots_for', 'shots_against', 'sot_for', 'sot_against',
     'xg_for', 'xg_against'
 ]
 
-FEATURES = [
+features = [
+    'elo_diff',
     'form_points_diff',
     'form_goals_for_diff',
     'form_goals_against_diff',
@@ -77,4 +82,7 @@ FEATURES = [
     'form_xg_for_diff',
     'form_xg_against_diff'
 ]
-TARGET = 'target_1x2'
+
+target = 'target_xg_diff'
+
+headers = {'User-Agent': 'Mozilla/5.0'}
